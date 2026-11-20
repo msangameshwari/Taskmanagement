@@ -4,7 +4,7 @@ import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.css";
 
-const API = "http://localhost:5000/tasks";
+const API = `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/tasks`;
 
 function App() {
   const [tasks, setTasks] = useState([]);
@@ -15,7 +15,7 @@ function App() {
       const res = await axios.get(API);
       setTasks(res.data);
     } catch (error) {
-      console.log("Backend is not connected yet.");
+      console.log("Backend connection error:", error);
     }
   };
 
@@ -34,18 +34,26 @@ function App() {
       setTitle("");
       loadTasks();
     } catch (error) {
-      alert("Start the backend server first.");
+      alert("Unable to add task. Check backend connection.");
     }
   };
 
   const updateStatus = async (id, status) => {
-    await axios.patch(`${API}/${id}`, { status });
-    loadTasks();
+    try {
+      await axios.patch(`${API}/${id}`, { status });
+      loadTasks();
+    } catch (error) {
+      alert("Unable to update task.");
+    }
   };
 
   const deleteTask = async (id) => {
-    await axios.delete(`${API}/${id}`);
-    loadTasks();
+    try {
+      await axios.delete(`${API}/${id}`);
+      loadTasks();
+    } catch (error) {
+      alert("Unable to delete task.");
+    }
   };
 
   const statuses = ["Pending", "Ongoing", "Completed"];
@@ -63,6 +71,7 @@ function App() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
+
         <button className="btn btn-primary" onClick={addTask}>
           Add Task
         </button>
@@ -80,14 +89,19 @@ function App() {
                 {tasks
                   .filter((task) => task.status === status)
                   .map((task) => (
-                    <div className="border rounded p-3 mb-3" key={task._id}>
+                    <div
+                      className="border rounded p-3 mb-3"
+                      key={task._id}
+                    >
                       <h5>{task.title}</h5>
                       <p>Status: {task.status}</p>
 
                       {status !== "Ongoing" && (
                         <button
                           className="btn btn-info btn-sm me-2 mb-2"
-                          onClick={() => updateStatus(task._id, "Ongoing")}
+                          onClick={() =>
+                            updateStatus(task._id, "Ongoing")
+                          }
                         >
                           Ongoing
                         </button>
@@ -96,7 +110,9 @@ function App() {
                       {status !== "Completed" && (
                         <button
                           className="btn btn-success btn-sm me-2 mb-2"
-                          onClick={() => updateStatus(task._id, "Completed")}
+                          onClick={() =>
+                            updateStatus(task._id, "Completed")
+                          }
                         >
                           Complete
                         </button>
@@ -112,7 +128,9 @@ function App() {
                   ))}
 
                 {tasks.filter((task) => task.status === status).length === 0 && (
-                  <p className="text-muted">No tasks available.</p>
+                  <p className="text-muted">
+                    No tasks available.
+                  </p>
                 )}
               </div>
             </div>
