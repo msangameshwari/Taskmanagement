@@ -4,17 +4,11 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-// Connect to MongoDB
-mongoose
-  .connect("mongodb://127.0.0.1:27017/taskmanager")
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.log("MongoDB connection error:", err));
 
 // Task Schema and Model
 const taskSchema = new mongoose.Schema(
@@ -46,7 +40,10 @@ app.get("/tasks", async (req, res) => {
     const tasks = await Task.find();
     res.json(tasks);
   } catch (err) {
-    res.status(500).json({ message: "Could not fetch tasks" });
+    console.error(err);
+    res.status(500).json({
+      message: "Could not fetch tasks"
+    });
   }
 });
 
@@ -64,7 +61,10 @@ app.post("/tasks", async (req, res) => {
     const newTask = await Task.create({ title });
     res.status(201).json(newTask);
   } catch (err) {
-    res.status(400).json({ message: "Could not create task" });
+    console.error(err);
+    res.status(400).json({
+      message: "Could not create task"
+    });
   }
 });
 
@@ -86,31 +86,63 @@ app.patch("/tasks/:id", async (req, res) => {
     );
 
     if (!updatedTask) {
-      return res.status(404).json({ message: "Task not found" });
+      return res.status(404).json({
+        message: "Task not found"
+      });
     }
 
     res.json(updatedTask);
   } catch (err) {
-    res.status(400).json({ message: "Could not update task" });
+    console.error(err);
+    res.status(400).json({
+      message: "Could not update task"
+    });
   }
 });
 
 // Delete a task
 app.delete("/tasks/:id", async (req, res) => {
   try {
-    const deletedTask = await Task.findByIdAndDelete(req.params.id);
+    const deletedTask = await Task.findByIdAndDelete(
+      req.params.id
+    );
 
     if (!deletedTask) {
-      return res.status(404).json({ message: "Task not found" });
+      return res.status(404).json({
+        message: "Task not found"
+      });
     }
 
-    res.json({ message: "Task deleted successfully" });
+    res.json({
+      message: "Task deleted successfully"
+    });
   } catch (err) {
-    res.status(400).json({ message: "Could not delete task" });
+    console.error(err);
+    res.status(400).json({
+      message: "Could not delete task"
+    });
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Connect MongoDB and start server
+async function startServer() {
+  try {
+    if (!process.env.MONGO_URI) {
+      throw new Error("MONGO_URI environment variable is missing");
+    }
+
+    await mongoose.connect(process.env.MONGO_URI);
+
+    console.log("MongoDB Atlas connected successfully");
+
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+
+  } catch (err) {
+    console.error("Server startup error:", err);
+    process.exit(1);
+  }
+}
+
+startServer();
